@@ -1,0 +1,36 @@
+name: "🐛 Bug Report"
+description: Сообщить о баге в LMS
+title: "[BUG] кратко: что не так"
+labels: ["bug"]
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1) ...
+        2) ...
+        3) ...
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактический результат
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемый результат
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Окружение
+      placeholder: "Chrome/Windows или iPhone/iOS"
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Артефакты (скрин/видео/лог)
