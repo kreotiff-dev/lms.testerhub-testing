@@ -1,0 +1,11 @@
+name: "❓ Question"
+description: Вопрос/уточнение по тестированию
+title: "[Q] Тема вопроса"
+labels: ["question"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Вопрос
+    validations:
+      required: true
