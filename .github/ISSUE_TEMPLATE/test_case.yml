@@ -1,0 +1,31 @@
+name: "✅ Test Case"
+description: Добавить тест-кейс
+title: "[TC] Название кейса"
+labels: ["test-case"]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Название
+    validations:
+      required: true
+  - type: textarea
+    id: preconditions
+    attributes:
+      label: Предусловия
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги
+      placeholder: |
+        1) ...
+        2) ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемый результат
+    validations:
+      required: true
+  
