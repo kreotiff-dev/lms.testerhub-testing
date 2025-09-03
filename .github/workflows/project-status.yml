@@ -1,4 +1,5 @@
-name: Sync project status from labels
+name: Sync project status from labels (user project v2)
+
 on:
   issues:
     types: [labeled]
@@ -7,41 +8,47 @@ jobs:
   sync-status:
     runs-on: ubuntu-latest
     permissions:
-      issues: write
       contents: read
-      projects: write
+      issues: write
     steps:
       - uses: actions/github-script@v7
         with:
           script: |
-            const PROJECT_OWNER = "kreotiff-dev";
-            const PROJECT_NUMBER = 1; // номер твоего проекта LMS.TESTERHUB TESTING
-
-            const MAP = {
+            // ==== НАСТРОЙКИ ====
+            const PROJECT_OWNER = "kreotiff-dev"; // твой юзернейм
+            const PROJECT_NUMBER = 1;             // номер user-проекта LMS.TESTERHUB TESTING
+            const LABEL_TO_STATUS = {
               "status:ready-for-testing": "Ready for testing",
-              "status:in-testing": "In testing",
-              "status:done": "Done",
-              "status:todo": "Todo",
+              "status:in-testing":        "In testing",
+              "status:done":              "Done",
+              "status:todo":              "Todo",
             };
 
-            const issue = context.payload.issue;
-            const label = context.payload.label.name;
+            // Разрешённые переходы (мини-стейт-машина)
+            // Ключ: откуда -> множество куда можно
+            const ALLOWED = {
+              "Ready for testing": new Set(["In testing"]),                          // только в In testing
+              "In testing":        new Set(["Done", "Ready for testing", "Todo"]),   // вперёд в Done, или назад
+              // Любые прочие статусы считаем закрытыми для внешних: запрещаем
+            };
+            const LOCKED = new Set(["In progress", "Done"]); // из этих статусов менять нельзя
 
-            if (!(label in MAP)) {
-              core.info("Label not mapped to project status");
+            // ==== ЛОГИКА ====
+            const issue = context.payload.issue;
+            const newLabel = context.payload.label?.name;
+            if (!newLabel || !(newLabel in LABEL_TO_STATUS)) {
+              core.info("Label not mapped to a status, exiting.");
               return;
             }
+            const targetStatusName = LABEL_TO_STATUS[newLabel];
 
-            const targetStatus = MAP[label];
-            core.info(`Updating status to: ${targetStatus}`);
-
-            // Получаем id проекта и список статусов
+            // 1) Получаем сам проект и поле Status (USER, не ORG!)
             const proj = await github.graphql(`
               query($owner:String!, $number:Int!){
-                organization(login:$owner){
+                user(login:$owner){
                   projectV2(number:$number){
                     id
-                    fields(first:20){
+                    fields(first:50){
                       nodes {
                         ... on ProjectV2SingleSelectField {
                           id
@@ -50,51 +57,105 @@ jobs:
                         }
                       }
                     }
+                    items(first:100){
+                      nodes {
+                        id
+                        content { ... on Issue { id number } }
+                        fieldValues(first:20){
+                          nodes {
+                            ... on ProjectV2ItemFieldSingleSelectValue {
+                              field { ... on ProjectV2SingleSelectField { name id } }
+                              name
+                              optionId
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
-              }`, { owner: PROJECT_OWNER, number: PROJECT_NUMBER });
+              }`,
+              { owner: PROJECT_OWNER, number: PROJECT_NUMBER }
+            );
 
-            const projectId = proj.organization.projectV2.id;
-            const statusField = proj.organization.projectV2.fields.nodes.find(f => f.name === "Status");
-            const option = statusField.options.find(o => o.name === targetStatus);
-            if (!option) {
-              core.setFailed(`Option ${targetStatus} not found`);
+            const project = proj.user.projectV2;
+            if (!project) {
+              core.setFailed("Project not found. Check PROJECT_OWNER/PROJECT_NUMBER.");
+              return;
+            }
+            const statusField = project.fields.nodes.find(f => f?.name === "Status");
+            if (!statusField) {
+              core.setFailed("Status field not found in the project.");
+              return;
+            }
+            const statusOption = statusField.options.find(o => o.name === targetStatusName);
+            if (!statusOption) {
+              core.setFailed(`Status option '${targetStatusName}' not found in the project.`);
               return;
             }
 
-            // Получаем issueId
-            const issueQ = await github.graphql(`
+            // 2) Получаем nodeId issue
+            const qIssue = await github.graphql(`
               query($owner:String!, $repo:String!, $number:Int!){
                 repository(owner:$owner, name:$repo){
                   issue(number:$number){ id }
                 }
-              }`, { owner: context.repo.owner, repo: context.repo.repo, number: issue.number });
+              }`,
+              { owner: context.repo.owner, repo: context.repo.repo, number: issue.number }
+            );
+            const issueId = qIssue.repository.issue.id;
 
-            const issueId = issueQ.repository.issue.id;
+            // 3) Ищем item в проекте
+            let item = project.items.nodes.find(n => n.content?.id === issueId);
+            // если нет — добавляем
+            if (!item) {
+              const added = await github.graphql(`
+                mutation($projectId:ID!, $contentId:ID!){
+                  addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}) {
+                    item { id }
+                  }
+                }`,
+                { projectId: project.id, contentId: issueId }
+              );
+              item = { id: added.addProjectV2ItemById.item.id, fieldValues: { nodes: [] } };
+            }
 
-            // Добавляем issue в проект если его нет
-            const add = await github.graphql(`
-              mutation($projectId:ID!, $contentId:ID!){
-                addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){
-                  item { id }
-                }
-              }`, { projectId, contentId: issueId });
-            const itemId = add.addProjectV2ItemById.item.id;
+            // 4) Определяем текущий статус
+            let currentStatusName = null;
+            for (const fv of (item.fieldValues?.nodes || [])) {
+              if (fv?.field?.name === "Status") { currentStatusName = fv?.name || null; break; }
+            }
+            core.info(`Current status: ${currentStatusName ?? "(none)"}, target: ${targetStatusName}`);
 
-            // Обновляем поле Status
+            // 5) Правила переходов
+            if (currentStatusName && LOCKED.has(currentStatusName)) {
+              core.info(`Blocked: current status '${currentStatusName}' is locked.`);
+              return; // запрещаем менять из In progress и Done
+            }
+            if (currentStatusName && ALLOWED[currentStatusName]) {
+              if (!ALLOWED[currentStatusName].has(targetStatusName)) {
+                core.info(`Transition '${currentStatusName}' -> '${targetStatusName}' is not allowed. Skipping.`);
+                return;
+              }
+            } else if (currentStatusName && !ALLOWED[currentStatusName]) {
+              // Для статусов вне явных правил — запрещаем
+              core.info(`Status '${currentStatusName}' not managed by external transitions. Skipping.`);
+              return;
+            }
+
+            // 6) Обновляем поле Status
             await github.graphql(`
               mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
                 updateProjectV2ItemFieldValue(input:{
                   projectId:$projectId,
                   itemId:$itemId,
                   fieldId:$fieldId,
-                  value:{singleSelectOptionId:$optionId}
+                  value:{ singleSelectOptionId:$optionId }
                 }) {
                   projectV2Item { id }
                 }
-              }`, {
-                projectId,
-                itemId,
-                fieldId: statusField.id,
-                optionId: option.id
-              });
+              }`,
+              { projectId: project.id, itemId: item.id, fieldId: statusField.id, optionId: statusOption.id }
+            );
+
+            core.info(`Status updated to '${targetStatusName}'.`);
