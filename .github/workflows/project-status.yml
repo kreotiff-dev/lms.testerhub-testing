@@ -15,8 +15,8 @@ jobs:
         with:
           script: |
             // ==== НАСТРОЙКИ ====
-            const PROJECT_OWNER = "kreotiff-dev"; // твой юзернейм
-            const PROJECT_NUMBER = 1;             // номер user-проекта LMS.TESTERHUB TESTING
+            const PROJECT_OWNER = "kreotiff-dev"; 
+            const PROJECT_NUMBER = 5;             
             const LABEL_TO_STATUS = {
               "status:ready-for-testing": "Ready for testing",
               "status:in-testing":        "In testing",
