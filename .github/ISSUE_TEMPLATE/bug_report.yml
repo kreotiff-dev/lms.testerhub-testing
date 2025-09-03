@@ -2,7 +2,33 @@ name: "🐛 Bug Report"
 description: Сообщить о баге в LMS
 title: "[BUG] кратко: что не так"
 labels: ["bug"]
+projects:
+  - kreotiff-dev/lms.testerhub-testing   # проект по умолчанию
+
 body:
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Приоритет
+      description: Насколько критична проблема?
+      options:
+        - "P0 — 🔴 Полный блокер (невозможно работать, нет обходного пути)"
+        - "P1 — 🟠 Критично (мешает основному сценарию, обход есть)"
+        - "P2 — 🟢 Средне (вторичный сценарий, обход возможен)"
+        - "P3 — ⚪️ Низко (косметика/улучшение)"
+    validations:
+      required: true
+
+  - type: input
+    id: preconditions
+    attributes:
+      label: Предусловия
+      description: Что должно быть выполнено до начала воспроизведения (окружение, данные, авторизация и т.п.)
+      placeholder: |
+        Пользователь авторизован в LMS
+        Есть курс "Postman"
+        Используется Chrome/Windows 11
+
   - type: textarea
     id: steps
     attributes:
@@ -13,36 +39,23 @@ body:
         3) ...
     validations:
       required: true
+
   - type: textarea
     id: actual
     attributes:
       label: Фактический результат
     validations:
       required: true
+
   - type: textarea
     id: expected
     attributes:
       label: Ожидаемый результат
     validations:
       required: true
-  - type: input
-    id: env
-    attributes:
-      label: Окружение
-      placeholder: "Chrome/Windows или iPhone/iOS"
+
   - type: textarea
     id: artifacts
     attributes:
       label: Артефакты (скрин/видео/лог)
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Приоритет
-      description: Насколько критична проблема?
-      options:
-        - 🔴 Высокий (блокирует работу)
-        - 🟠 Средний (мешает, но есть обходной путь)
-        - 🟢 Низкий (незначительная проблема)
-    validations:
-      required: true
+      description: "Прикрепи файлы или ссылки (Drive, Loom и т.п.)"
