@@ -1,11 +1,40 @@
 name: "🐛 Bug Report"
 description: Сообщить о баге в LMS
 title: "[BUG] кратко: что не так"
-labels: ["bug"]
+labels: ["bug", "bug:testerhub"]
 projects:
-  - kreotiff-dev/lms.testerhub-testing   # проект по умолчанию
+  - kreotiff-dev/lms.testerhub-testing # проект по умолчанию
 
 body:
+  # Testing Lab поля (требуются для начисления очков)
+  - type: input
+    id: pid
+    attributes:
+      label: PID (Participant ID)
+      description: Ваш ID участника Testing Lab (вставляется автоматически)
+      placeholder: "pid_abc123..."
+    validations:
+      required: true
+
+  - type: input
+    id: checklist_id
+    attributes:
+      label: Checklist ID
+      description: ID чек-листа, на котором найден баг
+      placeholder: "2025-10-28-profile-management"
+    validations:
+      required: true
+
+  - type: input
+    id: item_id
+    attributes:
+      label: Item ID
+      description: ID пункта чек-листа (например, item_0, item_5 или 'general')
+      placeholder: "item_0 или general"
+    validations:
+      required: true
+
+  # Основная информация о баге
   - type: dropdown
     id: priority
     attributes:
