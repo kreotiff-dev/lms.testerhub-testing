@@ -9,10 +9,12 @@ body:
       label: Название
     validations:
       required: true
+
   - type: textarea
     id: preconditions
     attributes:
       label: Предусловия
+
   - type: textarea
     id: steps
     attributes:
@@ -22,10 +24,10 @@ body:
         2) ...
     validations:
       required: true
+
   - type: textarea
     id: expected
     attributes:
       label: Ожидаемый результат
     validations:
       required: true
-  
