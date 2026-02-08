@@ -14,7 +14,7 @@ body:
       description: Ваш ID участника Testing Lab (вставляется автоматически)
       placeholder: "pid_abc123..."
     validations:
-      required: true
+      required: false
 
   - type: input
     id: checklist_id
@@ -23,7 +23,7 @@ body:
       description: ID чек-листа, на котором найден баг
       placeholder: "2025-10-28-profile-management"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: item_id
@@ -32,7 +32,7 @@ body:
       description: ID пункта чек-листа (например, item_0, item_5 или 'general')
       placeholder: "item_0 или general"
     validations:
-      required: true
+      required: false
 
   # Основная информация о баге
   - type: dropdown
@@ -74,14 +74,14 @@ body:
     attributes:
       label: Фактический результат
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: expected
     attributes:
       label: Ожидаемый результат
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: artifacts
