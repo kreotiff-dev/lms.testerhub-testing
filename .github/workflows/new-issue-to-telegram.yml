@@ -2,23 +2,27 @@ name: Новый issue → Telegram бот
 
 on:
   issues:
-    types: [opened]          # только новые issue
+    types: [opened]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
       - name: Отправить уведомление в чат с ботом
-        uses: appleboy/telegram-action@master   # или @v1.0.1, если хочешь зафиксировать версию
+        uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          format: markdown
-          disable_web_page_preview: false       # оставляем true/false по вкусу (false — показывать превью ссылки)
+          format: html                 # ← вот ключевое изменение!
+          disable_web_page_preview: false
           message: |
-            🆕 **Новый баг/таск в LMS**
+            <b>🆕 Новый баг/таск в LMS</b><br><br>
 
-            #${{ github.event.issue.number }} — *${{ github.event.issue.title }}*
+            <b>#${{ github.event.issue.number }}</b> — <i>${{ github.event.issue.title }}</i><br>
 
-            👤 Автор: @${{ github.event.issue.user.login }}
-            🔗 [Открыть issue]( ${{ github.event.issue.html_url }} )
+            👤 Автор: @${{ github.event.issue.user.login }}<br>
+            🔗 <a href="${{ github.event.issue.html_url }}">Открыть issue</a><br><br>
+
+            <pre>${{ github.event.issue.body || 'Описание отсутствует' }}</pre><br>
+
+            <i>Создано: ${{ github.event.issue.created_at }}</i>
