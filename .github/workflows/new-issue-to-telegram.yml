@@ -13,16 +13,16 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          format: html                 # ← вот ключевое изменение!
+          format: html
           disable_web_page_preview: false
           message: |
-            <b>🆕 Новый баг/таск в LMS</b><br><br>
+            <b>🆕 Новый баг/таск в LMS</b>
 
-            <b>#${{ github.event.issue.number }}</b> — <i>${{ github.event.issue.title }}</i><br>
+            <b>#${{ github.event.issue.number }}</b> — <i>${{ github.event.issue.title }}</i>
 
-            👤 Автор: @${{ github.event.issue.user.login }}<br>
-            🔗 <a href="${{ github.event.issue.html_url }}">Открыть issue</a><br><br>
+            👤 Автор: @${{ github.event.issue.user.login }}
+            🔗 <a href="${{ github.event.issue.html_url }}">Открыть issue</a>
 
-            <pre>${{ github.event.issue.body || 'Описание отсутствует' }}</pre><br>
+            <pre>${{ github.event.issue.body || 'Описание отсутствует' }}</pre>
 
             <i>Создано: ${{ github.event.issue.created_at }}</i>
